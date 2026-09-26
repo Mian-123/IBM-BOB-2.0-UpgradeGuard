@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>UpgradeGuard Dashboard</title>
+<style>
+  :root {
+    --bg-top: #0f1440;
+    --bg-bottom: #1c2266;
+    --card-bg: #ffffff;
+    --text: #1a1a2e;
+    --muted: #5a5a72;
+    --high: #e14b4b;
+    --medium: #e0a324;
+    --low: #2fa84f;
+    --accent: #3d4a8a;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: linear-gradient(180deg, var(--bg-top) 0%, var(--bg-bottom) 100%);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 32px 20px 60px;
+    padding-top: max(32px, env(safe-area-inset-top, 0px));
+    padding-bottom: max(60px, env(safe-area-inset-bottom, 0px));
+  }
+  header { text-align: center; color: #fff; margin-bottom: 8px; }
+  header h1 { font-size: 30px; margin: 0 0 4px; letter-spacing: 0.5px; }
+  header p { margin: 0; opacity: 0.75; font-size: 14px; }
+  .mode-banner {
+    text-align: center; color: #fff; font-size: 12px; opacity: 0.75;
+    margin: 14px auto 26px; max-width: 640px; background: rgba(255,255,255,0.08);
+    border-radius: 20px; padding: 8px 16px;
+  }
+  .summary { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; margin-bottom: 30px; }
+  .pill { background: rgba(255,255,255,0.1); color: #fff; padding: 8px 16px; border-radius: 20px; font-size: 13px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 18px; max-width: 1200px; margin: 0 auto; }
+  .card {
+    background: var(--card-bg); border-radius: 14px; padding: 18px 20px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.18); border-left: 6px solid var(--low);
+  }
+  .card.major, .card.HIGH { border-left-color: var(--high); }
+  .card.minor, .card.MEDIUM { border-left-color: var(--medium); }
+  .card.patch, .card.LOW { border-left-color: var(--low); }
+  .card-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .card-head h2 { font-size: 17px; margin: 0; }
+  .badge {
+    font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 12px;
+    color: #fff; text-transform: uppercase; letter-spacing: 0.4px; white-space: nowrap;
+  }
+  .badge.major, .badge.HIGH { background: var(--high); }
+  .badge.minor, .badge.MEDIUM { background: var(--medium); }
+  .badge.patch, .badge.LOW { background: var(--low); }
+  .version-row { font-size: 13px; color: var(--muted); margin-bottom: 10px; }
+  .flags { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+  .flag { font-size: 11px; background: #f1f2fa; color: #3d3d5c; padding: 3px 8px; border-radius: 8px; }
+  .stat-row { display: flex; gap: 14px; margin: 12px 0; flex-wrap: wrap; }
+  .stat { font-size: 11.5px; color: var(--muted); min-width: 64px; }
+  .stat b { color: var(--text); font-size: 15px; display: block; line-height: 1.4; }
+  .section-toggle {
+    font-size: 12px; font-weight: 600; color: var(--accent); cursor: pointer;
+    margin-top: 6px; display: inline-block; user-select: none;
+  }
+  .section-toggle:hover { text-decoration: underline; }
+  .evidence-panel {
+    display: none; margin-top: 10px; padding: 10px 12px; background: #f6f7fb;
+    border-radius: 8px; font-size: 12.3px; line-height: 1.6;
+  }
+  .evidence-panel.open { display: block; }
+  .evidence-panel ul { margin: 4px 0 10px; padding-left: 18px; }
+  .evidence-panel .diff {
+    background: #0f1440; color: #d7e6d7; font-family: "Courier New", monospace;
+    font-size: 11.5px; padding: 8px 10px; border-radius: 6px; margin-top: 4px;
+    white-space: pre-wrap;
+  }
+  .recommendation {
+    margin-top: 12px; font-size: 12.3px; font-weight: 700; padding: 8px 10px;
+    border-radius: 8px; background: #eef1ff; color: var(--accent); line-height: 1.5;
+  }
+  .empty { text-align: center; color: #fff; opacity: 0.85; margin-top: 60px; font-size: 14px; }
+  .empty code { background: rgba(255,255,255,0.15); padding: 2px 6px; border-radius: 4px; }
+  footer { text-align: center; color: rgba(255,255,255,0.5); font-size: 12px; margin-top: 44px; }
+  footer a { color: rgba(255,255,255,0.7); }
+</style>
+</head>
+<body>
+  <header>
+    <h1>UpgradeGuard</h1>
+    <p>Rehearse dependency changes before they break your code.</p>
+  </header>
+  <div class="mode-banner" id="modeBanner"></div>
+  <div class="summary" id="summary"></div>
+  <div class="grid" id="grid"></div>
+  <div class="empty" id="empty" style="display:none;">
+    No report found and no sample data available. Run <code>node scripts/scan.js</code> or
+    <code>node scripts/rehearse.js</code> first, then reload this page.
+  </div>
+  <footer id="footerNote">UpgradeGuard — Detect &rarr; Rehearse &rarr; Repair &rarr; Verify</footer>
+
+<script>
+/*
+  DATA SOURCE PRIORITY (checked in this order):
+
+  1. reports/risk-report.json   -- richest. Produced by scripts/rehearse.js
+     (real install+test evidence) and enriched further by Bob (usage,
+     breakingChanges, fix). Loaded via fetch when this page is served by
+     scripts/serve-dashboard.js on localhost.
+
+  2. reports/dependency-health.json -- basic. Produced by scripts/scan.js
+     alone, before any rehearsal has run.
+
+  3. SAMPLE_DATA below -- a REAL captured run of this exact project's
+     rehearsal engine (not fabricated numbers), embedded so this file
+     still shows something meaningful when published standalone (e.g. as
+     a public link with no local server behind it, such as for a
+     hackathon submission's "Application URL" field). The mode banner
+     always says clearly which of the three is being shown.
+
+  Expected shape per dependency in risk-report.json:
+  {
+    "name": "express", "current": "4.18.2", "target": "5.2.1",
+    "riskTier": "HIGH" | "MEDIUM" | "LOW",
+    "usage": { "count": 23, "files": [{"file": "src/server.js", "tag": "HIGH"}] },
+    "breakingChanges": ["route matching behavior changed", "..."],
+    "rehearsal": { "testsBefore": 10, "testsTotal": 10, "testsAfterUpgrade": 0,
+                    "testsAfterFix": 10, "buildPass": true, "typecheckPass": true },
+    "fix": { "applied": true, "diffSummary": "- old\n+ new" },
+    "recommendation": "READY AFTER MIGRATION PATCH"
+  }
+*/
+
+const SAMPLE_DATA = {
+  generatedAt: "2026-09-26T15:28:42.406Z",
+  dependencies: [
+    {
+      name: "express", current: "4.18.2", target: "5.2.1", riskTier: "HIGH",
+      usage: { count: 0, files: [] }, breakingChanges: [],
+      rehearsal: { testsBefore: 8, testsTotal: 10, testsAfterUpgrade: 0, testsAfterFix: null, buildPass: null, typecheckPass: null },
+      fix: { applied: false, diffSummary: null },
+      recommendation: "RISKY -- fewer tests ran after the upgrade than before (a test file may have failed to load). Expected 10 tests, only 0 ran."
+    },
+    {
+      name: "axios", current: "1.6.0", target: "1.20.0", riskTier: "MEDIUM",
+      usage: { count: 0, files: [] }, breakingChanges: [],
+      rehearsal: { testsBefore: 8, testsTotal: 10, testsAfterUpgrade: 8, testsAfterFix: null, buildPass: null, typecheckPass: null },
+      fix: { applied: false, diffSummary: null }, recommendation: "SAFE"
+    },
+    {
+      name: "dotenv", current: "16.3.1", target: "18.0.4", riskTier: "HIGH",
+      usage: { count: 0, files: [] }, breakingChanges: [],
+      rehearsal: { testsBefore: 8, testsTotal: 10, testsAfterUpgrade: 8, testsAfterFix: null, buildPass: null, typecheckPass: null },
+      fix: { applied: false, diffSummary: null }, recommendation: "SAFE"
+    },
+    {
+      name: "body-parser", current: "1.20.1", target: "2.3.0", riskTier: "HIGH",
+      usage: { count: 0, files: [] }, breakingChanges: [],
+      rehearsal: { testsBefore: 8, testsTotal: 10, testsAfterUpgrade: 8, testsAfterFix: null, buildPass: null, typecheckPass: null },
+      fix: { applied: false, diffSummary: null }, recommendation: "SAFE"
+    },
+    {
+      name: "jest", current: "29.7.0", target: "30.5.2", riskTier: "HIGH",
+      usage: { count: 0, files: [] }, breakingChanges: [],
+      rehearsal: { testsBefore: 8, testsTotal: 10, testsAfterUpgrade: 8, testsAfterFix: null, buildPass: null, typecheckPass: null },
+      fix: { applied: false, diffSummary: null }, recommendation: "SAFE"
+    },
+    {
+      name: "supertest", current: "6.3.3", target: "7.3.0", riskTier: "HIGH",
+      usage: { count: 0, files: [] }, breakingChanges: [],
+      rehearsal: { testsBefore: 8, testsTotal: 10, testsAfterUpgrade: 8, testsAfterFix: null, buildPass: null, typecheckPass: null },
+      fix: { applied: false, diffSummary: null }, recommendation: "SAFE"
+    }
+  ]
+};
+
+async function tryFetch(path) {
+  try {
+    const res = await fetch(path, { cache: 'no-store' });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+async function load() {
+  const richReport = await tryFetch('reports/risk-report.json');
+  if (richReport && richReport.dependencies && richReport.dependencies.length) {
+    const hasEnrichment = richReport.dependencies.some(d => (d.usage && d.usage.count > 0) || (d.breakingChanges && d.breakingChanges.length));
+    document.getElementById('modeBanner').textContent = hasEnrichment
+      ? 'Live report -- includes rehearsal evidence plus Bob\'s usage/breaking-change/fix analysis'
+      : 'Live report -- real rehearsal evidence (usage & breaking-change detail added by Bob in later phases)';
+    renderRich(richReport, 'reports/risk-report.json');
+    return;
+  }
+
+  const basicReport = await tryFetch('reports/dependency-health.json');
+  if (basicReport && basicReport.dependencies && basicReport.dependencies.length) {
+    document.getElementById('modeBanner').textContent =
+      'Basic scan view -- run scripts/rehearse.js for real pass/fail evidence';
+    renderBasic(basicReport);
+    return;
+  }
+
+  document.getElementById('modeBanner').textContent =
+    'Sample data -- a real captured rehearsal run of this project, shown because no local report was found';
+  renderRich(SAMPLE_DATA, 'embedded sample data');
+}
+
+function renderRich(data, source) {
+  const deps = data.dependencies;
+  const counts = {
+    total: deps.length,
+    HIGH: deps.filter(d => d.riskTier === 'HIGH' && /^RISKY|DO NOT TOUCH/.test(d.recommendation || '')).length,
+    RISKY: deps.filter(d => /^RISKY/.test(d.recommendation || '')).length,
+    SAFE: deps.filter(d => /^SAFE/.test(d.recommendation || '')).length,
+  };
+  document.getElementById('summary').innerHTML = [
+    counts.total + ' dependencies rehearsed',
+    counts.SAFE + ' safe',
+    counts.RISKY + ' risky',
+  ].map(t => '<div class="pill">' + t + '</div>').join('');
+
+  document.getElementById('grid').innerHTML = deps.map((dep, i) => {
+    const r = dep.rehearsal || {};
+    const fix = dep.fix || {};
+    const usage = dep.usage || { count: 0, files: [] };
+    const breaking = dep.breakingChanges || [];
+    const isSafe = /^SAFE/.test(dep.recommendation || '');
+    const tier = isSafe ? 'LOW' : dep.riskTier;
+
+    const usageList = usage.files.length
+      ? '<ul>' + usage.files.map(f => '<li>' + f.file + ' <span class="flag">' + f.tag + '</span></li>').join('') + '</ul>'
+      : '<i>No usage analysis yet -- run the Usage Analyst prompt in Bob (Phase 2)</i>';
+    const breakingList = breaking.length
+      ? '<ul>' + breaking.map(b => '<li>' + b + '</li>').join('') + '</ul>'
+      : '<i>No breaking-change analysis yet -- run the Breaking Change prompt in Bob (Phase 3)</i>';
+    const diffHtml = fix.applied && fix.diffSummary
+      ? '<div class="diff">' + fix.diffSummary.replace(/</g, '&lt;') + '</div>'
+      : '';
+
+    return '' +
+      '<div class="card ' + tier + '">' +
+        '<div class="card-head"><h2>' + dep.name + '</h2>' +
+          '<span class="badge ' + tier + '">' + (isSafe ? 'SAFE' : tier) + '</span></div>' +
+        '<div class="version-row">' + dep.current + ' &rarr; ' + dep.target + '</div>' +
+        '<div class="stat-row">' +
+          '<div class="stat"><b>' + usage.count + '</b>usages</div>' +
+          '<div class="stat"><b>' + usage.files.length + '</b>files</div>' +
+          '<div class="stat"><b>' + (r.testsBefore ?? '-') + '/' + (r.testsTotal ?? '-') + '</b>before</div>' +
+          '<div class="stat"><b>' + (r.testsAfterUpgrade ?? '-') + '/' + (r.testsTotal ?? '-') + '</b>after upgrade</div>' +
+          (r.testsAfterFix != null ? '<div class="stat"><b>' + r.testsAfterFix + '/' + (r.testsTotal ?? '-') + '</b>after fix</div>' : '') +
+        '</div>' +
+        '<span class="section-toggle" onclick="toggle(' + i + ')">View Evidence &darr;</span>' +
+        '<div class="evidence-panel" id="ev' + i + '">' +
+          '<b>Usage locations</b>' + usageList +
+          '<b>Breaking changes</b>' + breakingList +
+          (diffHtml ? '<b>Fix applied</b>' + diffHtml : '') +
+        '</div>' +
+        '<div class="recommendation">' + (dep.recommendation || 'No recommendation yet') + '</div>' +
+      '</div>';
+  }).join('');
+
+  document.getElementById('footerNote').innerHTML = 'Source: ' + source;
+}
+
+function toggle(i) {
+  document.getElementById('ev' + i).classList.toggle('open');
+}
+
+function renderBasic(data) {
+  const { counts, dependencies } = data;
+  document.getElementById('summary').innerHTML = [
+    counts.total + ' dependencies scanned',
+    counts.major + ' major', counts.minor + ' minor', counts.patch + ' patch',
+    counts.deprecated + ' deprecated', counts.vulnerable + ' vulnerable',
+  ].map(t => '<div class="pill">' + t + '</div>').join('');
+
+  document.getElementById('grid').innerHTML = dependencies.map(dep => {
+    const flags = [];
+    if (dep.deprecated) flags.push('DEPRECATED');
+    if (dep.vulnerability) flags.push('VULN: ' + dep.vulnerability.severity);
+    if (dep.lockfileDrift) flags.push('LOCKFILE DRIFT');
+    const flagsHtml = flags.length
+      ? flags.map(f => '<span class="flag">' + f + '</span>').join('')
+      : '<span class="flag">clean</span>';
+    const wantedNote = (dep.wanted && dep.wanted !== dep.latest) ? ' (wanted: ' + dep.wanted + ')' : '';
+    return '' +
+      '<div class="card ' + dep.bump + '">' +
+        '<div class="card-head"><h2>' + dep.name + '</h2>' +
+          '<span class="badge ' + dep.bump + '">' + dep.bump + '</span></div>' +
+        '<div class="version-row">' + dep.current + ' &rarr; ' + dep.latest + wantedNote + '</div>' +
+        '<div class="flags">' + flagsHtml + '</div>' +
+      '</div>';
+  }).join('');
+  document.getElementById('footerNote').textContent = 'Source: reports/dependency-health.json';
+}
+
+load();
+</script>
+</body>
+</html>
