@@ -2,7 +2,7 @@
 /**
  * UpgradeGuard local control panel server.
  *
- * Serves dashboard.html and reports/*.json as static files, AND exposes
+ * Serves index.html and reports/*.json as static files, AND exposes
  * three POST endpoints that run the existing scripts as real child
  * processes, STREAMING their console output back to the browser as it
  * happens (not buffered until the whole thing finishes). This matters:
@@ -19,7 +19,7 @@
  * rehearsals fighting over the same git worktree.
  *
  * Usage: node scripts/serve-dashboard.js [port]
- * Then open http://localhost:<port>/dashboard.html
+ * Then open http://localhost:<port>/index.html
  */
 const http = require('http');
 const fs = require('fs');
@@ -74,7 +74,7 @@ function streamScript(scriptRelPath, args, res) {
 }
 
 function serveStatic(req, res, pathname) {
-  let urlPath = pathname === '/' ? '/dashboard.html' : pathname;
+  let urlPath = pathname === '/' ? '/index.html' : pathname;
   const filePath = path.join(ROOT, urlPath);
 
   if (!filePath.startsWith(ROOT)) {
@@ -113,5 +113,5 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`UpgradeGuard control panel running at http://localhost:${PORT}/dashboard.html`);
+  console.log(`UpgradeGuard control panel running at http://localhost:${PORT}/index.html`);
 });
