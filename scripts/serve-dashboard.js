@@ -2,20 +2,18 @@
 /**
  * UpgradeGuard local control panel server.
  *
- * Serves dashboard.html and reports/*.json exactly like a plain static
- * server, AND exposes three POST endpoints that run the existing scripts
- * as real child processes -- so the whole free (non-Bob) part of the
- * workflow can be operated entirely by clicking buttons in the browser,
- * with the actual script's console output shown back in real time:
+ * Serves dashboard.html and reports/*.json as static files, AND exposes
+ * three POST endpoints that run the existing scripts as real child
+ * processes, STREAMING their console output back to the browser as it
+ * happens (not buffered until the whole thing finishes). This matters:
+ * `rehearse.js` on 6 dependencies can genuinely take a few minutes (each
+ * one is a real `npm install` + real test run), and a page that shows
+ * nothing for minutes reads as broken even when it's working correctly.
  *
- *   POST /api/scan               -> runs `node scripts/scan.js`
- *   POST /api/rehearse           -> runs `node scripts/rehearse.js` (all deps)
- *   POST /api/rehearse?name=expr -> runs `node scripts/rehearse.js express`
- *   POST /api/merge              -> runs `node scripts/merge-reports.js`
- *
- * Each returns { ok: boolean, output: string } with the script's real
- * stdout/stderr -- this is not a fake progress bar, it is the actual
- * script's actual output.
+ *   POST /api/scan               -> streams `node scripts/scan.js`
+ *   POST /api/rehearse           -> streams `node scripts/rehearse.js` (all deps)
+ *   POST /api/rehearse?name=expr -> streams `node scripts/rehearse.js express`
+ *   POST /api/merge              -> streams `node scripts/merge-reports.js`
  *
  * Only one action runs at a time (a simple in-memory lock) to avoid two
  * rehearsals fighting over the same git worktree.
@@ -26,8 +24,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const url = require('url');
-const { execFile } = require('child_process');
+const { spawn } = require('child_process');
 
 const ROOT = path.resolve(__dirname, '..');
 const PORT = process.argv[2] ? parseInt(process.argv[2], 10) : 8080;
@@ -41,32 +38,50 @@ const MIME = {
 
 let busy = false;
 
-function runScript(scriptRelPath, args, res) {
+function streamScript(scriptRelPath, args, res) {
   if (busy) {
-    res.writeHead(409, { 'Content-Type': 'application/json' });
-    return res.end(JSON.stringify({ ok: false, output: 'Another action is already running -- wait for it to finish.' }));
+    res.writeHead(409, { 'Content-Type': 'text/plain; charset=utf-8' });
+    return res.end('Another action is already running -- wait for it to finish, then try again.');
   }
   busy = true;
-  execFile(
-    process.execPath,
-    [path.join(ROOT, scriptRelPath), ...args],
-    { cwd: ROOT, timeout: 10 * 60 * 1000, maxBuffer: 20 * 1024 * 1024 },
-    (error, stdout, stderr) => {
+
+  res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
+
+  const child = spawn(process.execPath, [path.join(ROOT, scriptRelPath), ...args], { cwd: ROOT });
+
+  child.stdout.on('data', (chunk) => res.write(chunk));
+  child.stderr.on('data', (chunk) => res.write(chunk));
+
+  child.on('close', (code) => {
+    busy = false;
+    res.write(`\n\n[finished, exit code ${code}]`);
+    res.end();
+  });
+
+  child.on('error', (err) => {
+    busy = false;
+    res.write('\n\nFailed to start script: ' + err.message);
+    res.end();
+  });
+
+  // If the browser tab closes mid-run, don't leave an orphaned process.
+  res.req.on('close', () => {
+    if (!res.writableEnded) {
+      child.kill();
       busy = false;
-      const output = (stdout || '') + (stderr ? '\n' + stderr : '');
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ ok: !error, output }));
     }
-  );
+  });
 }
 
-function serveStatic(req, res, urlPath) {
-  if (urlPath === '/') urlPath = '/dashboard.html';
+function serveStatic(req, res, pathname) {
+  let urlPath = pathname === '/' ? '/dashboard.html' : pathname;
   const filePath = path.join(ROOT, urlPath);
+
   if (!filePath.startsWith(ROOT)) {
     res.writeHead(403);
     return res.end('Forbidden');
   }
+
   fs.readFile(filePath, (err, data) => {
     if (err) {
       res.writeHead(404);
@@ -79,18 +94,19 @@ function serveStatic(req, res, urlPath) {
 }
 
 const server = http.createServer((req, res) => {
-  const parsed = url.parse(req.url, true);
+  // WHATWG URL API instead of the deprecated url.parse().
+  const parsed = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   const pathname = decodeURIComponent(parsed.pathname);
 
   if (req.method === 'POST' && pathname === '/api/scan') {
-    return runScript('scripts/scan.js', [], res);
+    return streamScript('scripts/scan.js', [], res);
   }
   if (req.method === 'POST' && pathname === '/api/rehearse') {
-    const name = parsed.query.name;
-    return runScript('scripts/rehearse.js', name ? [String(name)] : [], res);
+    const name = parsed.searchParams.get('name');
+    return streamScript('scripts/rehearse.js', name ? [name] : [], res);
   }
   if (req.method === 'POST' && pathname === '/api/merge') {
-    return runScript('scripts/merge-reports.js', [], res);
+    return streamScript('scripts/merge-reports.js', [], res);
   }
 
   serveStatic(req, res, pathname);

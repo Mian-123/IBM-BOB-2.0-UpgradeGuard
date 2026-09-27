@@ -3,210 +3,422 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-<title>UpgradeGuard Dashboard</title>
+<title>UpgradeGuard — Rehearse dependency changes before they break your code</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg-top: #0f1440;
-    --bg-bottom: #1c2266;
-    --card-bg: #ffffff;
-    --text: #1a1a2e;
-    --muted: #5a5a72;
-    --high: #e14b4b;
-    --medium: #e0a324;
-    --low: #2fa84f;
-    --accent: #3d4a8a;
+    --ink: #12151C;
+    --ink-soft: #1B2029;
+    --paper: #EDEFEA;
+    --paper-card: #FFFFFF;
+    --text-on-ink: #F3F4EF;
+    --text-on-ink-dim: #A7ADBB;
+    --text-on-paper: #1B2029;
+    --text-on-paper-dim: #5B6270;
+    --verified: #1E6B45;
+    --risk: #B8722A;
+    --danger: #A63A3A;
+    --structural: #3D4C6B;
+    --rule: rgba(255,255,255,0.12);
+    --rule-on-paper: rgba(27,32,41,0.12);
+    --font-sans: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-mono: 'IBM Plex Mono', 'Courier New', monospace;
   }
+  :root:not([data-theme="light"]) { color-scheme: dark light; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) { --paper: #EDEFEA; --ink: #12151C; }
+  }
+  :root[data-theme="dark"] { --paper: #EDEFEA; --ink: #12151C; }
+
   * { box-sizing: border-box; }
-  html, body { height: 100%; }
+  html { scroll-behavior: smooth; scroll-padding-top: calc(64px + env(safe-area-inset-top, 0px)); }
+  html, body { margin: 0; padding: 0; }
   body {
-    margin: 0;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    background: linear-gradient(180deg, var(--bg-top) 0%, var(--bg-bottom) 100%);
-    color: var(--text);
-    min-height: 100vh;
-    padding: 32px 20px 60px;
-    padding-top: max(32px, env(safe-area-inset-top, 0px));
-    padding-bottom: max(60px, env(safe-area-inset-bottom, 0px));
+    font-family: var(--font-sans);
+    background: var(--paper);
+    color: var(--text-on-paper);
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
-  header { text-align: center; color: #fff; margin-bottom: 8px; }
-  header h1 { font-size: 30px; margin: 0 0 4px; letter-spacing: 0.5px; }
-  header p { margin: 0; opacity: 0.75; font-size: 14px; }
+  img { max-width: 100%; }
+  a { color: inherit; }
+
+  /* ---------- Nav ---------- */
+  .nav {
+    position: sticky; top: 0; z-index: 50;
+    padding-top: env(safe-area-inset-top, 0px);
+    background: var(--ink); color: var(--text-on-ink);
+    border-bottom: 1px solid var(--rule);
+  }
+  .nav-inner {
+    width: min(94%, 1440px); margin: 0 auto; padding: 14px 0;
+    display: flex; align-items: center; justify-content: space-between; gap: 18px;
+  }
+  .wordmark {
+    font-family: var(--font-mono); font-size: 15px; font-weight: 600;
+    letter-spacing: 0.02em; color: var(--text-on-ink);
+  }
+  .wordmark span { color: var(--verified); }
+  .nav-links { display: flex; align-items: center; gap: 22px; }
+  .nav-links a {
+    font-size: 13.5px; color: var(--text-on-ink-dim); text-decoration: none;
+  }
+  .nav-links a:hover { color: var(--text-on-ink); }
+  .nav-cta {
+    font-family: var(--font-sans); font-size: 13.5px; font-weight: 600;
+    background: var(--verified); color: #fff; border: none; border-radius: 7px;
+    padding: 8px 16px; cursor: pointer;
+  }
+  .nav-cta:hover { background: #256d4a; }
+  @media (max-width: 720px) { .nav-links a:not(.nav-cta-wrap) { display: none; } }
+
+  /* ---------- Hero ---------- */
+  .hero {
+    background: var(--ink); color: var(--text-on-ink);
+    padding: 72px 20px 84px;
+  }
+  .hero-inner {
+    width: min(94%, 1440px); margin: 0 auto;
+    display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 64px; align-items: center;
+  }
+  @media (max-width: 860px) { .hero-inner { grid-template-columns: 1fr; gap: 40px; } }
+  .hero-eyebrow-rule {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 22px;
+  }
+  .hero-eyebrow-rule .tick { width: 26px; height: 1px; background: var(--verified); }
+  .hero-eyebrow-rule span {
+    font-family: var(--font-mono); font-size: 12.5px; color: var(--text-on-ink-dim);
+  }
+  .hero h1 {
+    font-size: clamp(32px, 4.4vw, 48px); line-height: 1.12; font-weight: 600;
+    margin: 0 0 20px; max-width: 15ch;
+  }
+  .hero p.lede {
+    font-size: 16.5px; line-height: 1.6; color: var(--text-on-ink-dim);
+    max-width: 46ch; margin: 0 0 30px;
+  }
+  .hero-actions { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+  .btn-primary {
+    font-family: var(--font-sans); font-size: 14.5px; font-weight: 600;
+    background: var(--verified); color: #fff; border: none; border-radius: 8px;
+    padding: 13px 24px; cursor: pointer;
+  }
+  .btn-primary:hover { background: #256d4a; }
+  .hero-actions .secondary-link { font-size: 13.5px; color: var(--text-on-ink-dim); text-decoration: none; }
+  .hero-actions .secondary-link:hover { color: var(--text-on-ink); }
+
+  /* Readout card -- the hero's visual is the product's own real artifact */
+  .readout {
+    background: var(--ink-soft); border: 1px solid var(--rule); border-radius: 10px;
+    padding: 20px 22px; font-family: var(--font-mono); font-size: 12.5px; line-height: 1.9;
+  }
+  .readout-title {
+    font-size: 11.5px; color: var(--text-on-ink-dim); letter-spacing: 0.02em;
+    padding-bottom: 10px; margin-bottom: 10px; border-bottom: 1px solid var(--rule);
+  }
+  .readout-row { display: flex; justify-content: space-between; gap: 12px; }
+  .readout-row .k { color: var(--text-on-ink-dim); }
+  .readout-row .v { color: var(--text-on-ink); text-align: right; }
+  .readout-row .v.bad { color: #E08A8A; }
+  .readout-row .v.good { color: #7FC9A2; }
+  .readout-verdict {
+    margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--rule);
+    font-size: 12px; color: #E5D9A8;
+  }
+
+  /* ---------- Section shell ---------- */
+  section.block { padding: 76px 20px; }
+  .block-inner { width: min(94%, 1440px); margin: 0 auto; }
+  .section-head { max-width: 60ch; margin-bottom: 44px; }
+  .section-head h2 { font-size: clamp(24px, 3vw, 30px); font-weight: 600; margin: 0 0 12px; line-height: 1.2; }
+  .section-head p { font-size: 15px; color: var(--text-on-paper-dim); line-height: 1.6; margin: 0; }
+
+  /* ---------- How it works (genuine sequence -> numbering justified) ---------- */
+  .steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; }
+  @media (max-width: 860px) { .steps { grid-template-columns: 1fr; gap: 28px; } }
+  .step { position: relative; padding: 0 20px 0 0; }
+  .step:not(:last-child) { border-right: 1px solid var(--rule-on-paper); }
+  @media (max-width: 860px) { .step:not(:last-child) { border-right: none; border-bottom: 1px solid var(--rule-on-paper); padding-bottom: 24px; } }
+  .step-num {
+    font-family: var(--font-mono); font-size: 13px; color: var(--verified);
+    margin-bottom: 14px;
+  }
+  .step h3 { font-size: 16.5px; font-weight: 600; margin: 0 0 8px; }
+  .step p { font-size: 13.5px; color: var(--text-on-paper-dim); line-height: 1.6; margin: 0; padding-right: 8px; }
+
+  /* ---------- Technologies (honest architecture split) ---------- */
+  .tech-split { display: grid; grid-template-columns: 1fr 1fr; gap: 0; border-radius: 12px; overflow: hidden; border: 1px solid var(--rule-on-paper); }
+  @media (max-width: 780px) { .tech-split { grid-template-columns: 1fr; } }
+  .tech-col { padding: 32px 30px; background: var(--paper-card); }
+  .tech-col.dim { background: #E3E6DF; }
+  .tech-col h3 { font-size: 15px; font-weight: 600; margin: 0 0 4px; }
+  .tech-col .tech-sub { font-size: 12.5px; color: var(--text-on-paper-dim); margin: 0 0 20px; }
+  .tech-list { list-style: none; margin: 0; padding: 0; }
+  .tech-list li {
+    font-size: 13.5px; line-height: 1.6; padding: 10px 0;
+    border-top: 1px solid var(--rule-on-paper);
+    display: flex; gap: 10px;
+  }
+  .tech-list li:first-child { border-top: none; }
+  .tech-list code { font-family: var(--font-mono); font-size: 12px; color: var(--structural); white-space: nowrap; }
+
+  /* ---------- Live demo / reports (existing tested functionality) ---------- */
+  #live-demo { background: var(--paper); }
+  .toolbar { display: flex; justify-content: flex-start; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; }
+  .btn {
+    font-family: var(--font-sans); background: var(--ink); color: #fff; border: none;
+    padding: 10px 18px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;
+  }
+  .btn:hover { background: var(--ink-soft); }
+  .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+  .status-line { font-size: 12.5px; color: var(--text-on-paper-dim); min-height: 16px; margin: 10px 0 4px; }
+  .console-panel {
+    background: var(--ink); color: #B9F2C0; font-family: var(--font-mono); font-size: 11.5px;
+    line-height: 1.6; border-radius: 10px; padding: 14px 16px; white-space: pre-wrap;
+    max-height: 240px; overflow-y: auto; display: none; margin-bottom: 24px;
+  }
+  .console-panel.open { display: block; }
   .mode-banner {
-    text-align: center; color: #fff; font-size: 12px; opacity: 0.75;
-    margin: 14px auto 26px; max-width: 640px; background: rgba(255,255,255,0.08);
-    border-radius: 20px; padding: 8px 16px;
+    font-size: 12.5px; color: var(--text-on-paper-dim); background: var(--paper-card);
+    border: 1px solid var(--rule-on-paper); border-radius: 8px; padding: 9px 14px;
+    display: inline-block; margin-bottom: 22px;
   }
-  .summary { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; margin-bottom: 30px; }
-  .pill { background: rgba(255,255,255,0.1); color: #fff; padding: 8px 16px; border-radius: 20px; font-size: 13px; }
-  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 18px; max-width: 1200px; margin: 0 auto; }
+  .summary { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 26px; }
+  .pill {
+    background: var(--paper-card); border: 1px solid var(--rule-on-paper); color: var(--text-on-paper);
+    padding: 7px 14px; border-radius: 20px; font-size: 12.5px;
+  }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
   .card {
-    background: var(--card-bg); border-radius: 14px; padding: 18px 20px;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.18); border-left: 6px solid var(--low);
+    background: var(--paper-card); border-radius: 12px; padding: 18px 20px;
+    border-left: 5px solid var(--verified); box-shadow: 0 1px 3px rgba(18,21,28,0.06);
   }
-  .card.major, .card.HIGH { border-left-color: var(--high); }
-  .card.minor, .card.MEDIUM { border-left-color: var(--medium); }
-  .card.patch, .card.LOW { border-left-color: var(--low); }
-  .card-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-  .card-head h2 { font-size: 17px; margin: 0; }
+  .card.HIGH { border-left-color: var(--danger); }
+  .card.MEDIUM { border-left-color: var(--risk); }
+  .card.LOW { border-left-color: var(--verified); }
+  .card-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .card-head h4 { font-size: 16px; margin: 0; font-weight: 600; }
   .badge {
-    font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 12px;
-    color: #fff; text-transform: uppercase; letter-spacing: 0.4px; white-space: nowrap;
+    font-size: 10.5px; font-weight: 700; padding: 3px 9px; border-radius: 10px;
+    color: #fff; letter-spacing: 0.03em;
   }
-  .badge.major, .badge.HIGH { background: var(--high); }
-  .badge.minor, .badge.MEDIUM { background: var(--medium); }
-  .badge.patch, .badge.LOW { background: var(--low); }
-  .version-row { font-size: 13px; color: var(--muted); margin-bottom: 10px; }
-  .flags { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
-  .flag { font-size: 11px; background: #f1f2fa; color: #3d3d5c; padding: 3px 8px; border-radius: 8px; }
-  .stat-row { display: flex; gap: 14px; margin: 12px 0; flex-wrap: wrap; }
-  .stat { font-size: 11.5px; color: var(--muted); min-width: 64px; }
-  .stat b { color: var(--text); font-size: 15px; display: block; line-height: 1.4; }
+  .badge.HIGH { background: var(--danger); }
+  .badge.MEDIUM { background: var(--risk); }
+  .badge.LOW { background: var(--verified); }
+  .version-row { font-family: var(--font-mono); font-size: 12.5px; color: var(--text-on-paper-dim); margin-bottom: 10px; }
+  .stat-row { display: flex; gap: 16px; margin: 10px 0; flex-wrap: wrap; }
+  .stat { font-size: 11px; color: var(--text-on-paper-dim); min-width: 58px; }
+  .stat b { font-family: var(--font-mono); color: var(--text-on-paper); font-size: 14px; display: block; }
   .section-toggle {
-    font-size: 12px; font-weight: 600; color: var(--accent); cursor: pointer;
-    margin-top: 6px; display: inline-block; user-select: none;
+    font-size: 12px; font-weight: 600; color: var(--structural); cursor: pointer;
+    display: inline-block; margin-top: 4px; user-select: none;
   }
   .section-toggle:hover { text-decoration: underline; }
   .evidence-panel {
-    display: none; margin-top: 10px; padding: 10px 12px; background: #f6f7fb;
-    border-radius: 8px; font-size: 12.3px; line-height: 1.6;
+    display: none; margin-top: 10px; padding: 12px 14px; background: #F4F5F1;
+    border-radius: 8px; font-size: 12px; line-height: 1.6;
   }
   .evidence-panel.open { display: block; }
   .evidence-panel ul { margin: 4px 0 10px; padding-left: 18px; }
   .evidence-panel .diff {
-    background: #0f1440; color: #d7e6d7; font-family: "Courier New", monospace;
-    font-size: 11.5px; padding: 8px 10px; border-radius: 6px; margin-top: 4px;
-    white-space: pre-wrap;
+    background: var(--ink); color: #d7e6d7; font-family: var(--font-mono);
+    font-size: 11px; padding: 8px 10px; border-radius: 6px; margin-top: 4px; white-space: pre-wrap;
   }
   .recommendation {
-    margin-top: 12px; font-size: 12.3px; font-weight: 700; padding: 8px 10px;
-    border-radius: 8px; background: #eef1ff; color: var(--accent); line-height: 1.5;
+    margin-top: 12px; font-size: 12px; font-weight: 600; padding: 8px 10px;
+    border-radius: 8px; background: #EAF1EE; color: var(--verified); line-height: 1.5;
   }
-  .empty { text-align: center; color: #fff; opacity: 0.85; margin-top: 60px; font-size: 14px; }
-  .empty code { background: rgba(255,255,255,0.15); padding: 2px 6px; border-radius: 4px; }
-  footer { text-align: center; color: rgba(255,255,255,0.5); font-size: 12px; margin-top: 44px; }
-  footer a { color: rgba(255,255,255,0.7); }
-
-  .toolbar {
-    display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;
-    margin: 18px auto 8px; max-width: 900px;
-  }
-  .btn {
-    background: #fff; color: var(--accent); border: none; padding: 10px 18px;
-    border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-  }
-  .btn:hover { background: #eef1ff; }
-  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .card.HIGH .recommendation { background: #F7EAEA; color: var(--danger); }
   .card-actions { margin-top: 10px; }
   .btn-small {
-    font-size: 11px; font-weight: 600; color: var(--accent); background: #eef1ff;
-    border: none; padding: 5px 10px; border-radius: 7px; cursor: pointer; margin-top: 4px;
+    font-family: var(--font-sans); font-size: 11px; font-weight: 600; color: var(--structural);
+    background: #E4E7F0; border: none; padding: 6px 11px; border-radius: 7px; cursor: pointer;
   }
-  .btn-small:hover { background: #dfe4ff; }
-  .btn-small:disabled { opacity: 0.5; cursor: not-allowed; }
-  .console-panel {
-    max-width: 900px; margin: 10px auto 0; background: #0a0e2e; color: #b9f2c0;
-    font-family: "Courier New", monospace; font-size: 11.5px; line-height: 1.6;
-    border-radius: 10px; padding: 12px 16px; white-space: pre-wrap;
-    max-height: 220px; overflow-y: auto; display: none;
+  .btn-small:hover { background: #d6dbec; }
+  .btn-small:disabled { opacity: 0.45; cursor: not-allowed; }
+  .empty { text-align: center; color: var(--text-on-paper-dim); font-size: 14px; padding: 40px 0; }
+  .empty code { background: var(--paper-card); border: 1px solid var(--rule-on-paper); padding: 2px 6px; border-radius: 4px; }
+
+  footer {
+    background: var(--ink); color: var(--text-on-ink-dim); text-align: center;
+    font-size: 12.5px; padding: 30px 24px; padding-bottom: max(30px, env(safe-area-inset-bottom, 0px));
   }
-  .console-panel.open { display: block; }
-  .status-line { text-align: center; color: #fff; font-size: 12px; opacity: 0.85; margin-top: 8px; min-height: 16px; }
+  footer .foot-note { font-family: var(--font-mono); font-size: 11.5px; margin-top: 6px; opacity: 0.8; }
 </style>
 </head>
 <body>
-  <header>
-    <h1>UpgradeGuard</h1>
-    <p>Rehearse dependency changes before they break your code.</p>
-  </header>
-  <div class="toolbar">
-    <button class="btn" id="btnScan" onclick="runAction('/api/scan', 'Scanning dependencies...')">Scan Dependencies</button>
-    <button class="btn" id="btnRehearse" onclick="runAction('/api/rehearse', 'Rehearsing all outdated dependencies (this installs and tests each one, may take a minute)...')">Rehearse All</button>
-    <button class="btn" id="btnMerge" onclick="runAction('/api/merge', 'Merging reports...')">Refresh Report</button>
+
+  <div class="nav">
+    <div class="nav-inner">
+      <div class="wordmark">Upgrade<span>Guard</span></div>
+      <div class="nav-links">
+        <a href="#how-it-works">How it works</a>
+        <a href="#technologies">Technologies</a>
+        <a href="#live-demo">Live demo</a>
+        <button class="nav-cta" onclick="document.getElementById('live-demo').scrollIntoView()">Run a check</button>
+      </div>
+    </div>
   </div>
-  <div class="status-line" id="statusLine"></div>
-  <div class="console-panel" id="consolePanel"></div>
-  <div class="mode-banner" id="modeBanner"></div>
-  <div class="summary" id="summary"></div>
-  <div class="grid" id="grid"></div>
-  <div class="empty" id="empty" style="display:none;">
-    No report found and no sample data available. Run <code>node scripts/scan.js</code> or
-    <code>node scripts/rehearse.js</code> first, then reload this page.
+
+  <div class="hero">
+    <div class="hero-inner">
+      <div>
+        <div class="hero-eyebrow-rule"><span class="tick"></span><span>Detect · Rehearse · Repair · Verify</span></div>
+        <h1>Rehearse dependency changes before they break your code.</h1>
+        <p class="lede">
+          UpgradeGuard installs the new version in an isolated copy of your project,
+          runs your real tests against it, and tells you exactly what will break and
+          why — before you ever touch your main branch.
+        </p>
+        <div class="hero-actions">
+          <button class="btn-primary" onclick="document.getElementById('live-demo').scrollIntoView()">Run a check</button>
+          <a class="secondary-link" href="#how-it-works">See how it works</a>
+        </div>
+      </div>
+      <div class="readout">
+        <div class="readout-title">REHEARSAL LOG — express</div>
+        <div class="readout-row"><span class="k">version</span><span class="v">4.18.2 &rarr; 5.2.1</span></div>
+        <div class="readout-row"><span class="k">before</span><span class="v good">10/10 passing</span></div>
+        <div class="readout-row"><span class="k">after upgrade</span><span class="v bad">0/10 — crashed</span></div>
+        <div class="readout-row"><span class="k">cause</span><span class="v">bare '*' wildcard rejected</span></div>
+        <div class="readout-row"><span class="k">fix applied</span><span class="v good">verified</span></div>
+        <div class="readout-row"><span class="k">after fix</span><span class="v good">10/10 passing</span></div>
+        <div class="readout-verdict">VERDICT: READY AFTER MIGRATION PATCH</div>
+      </div>
+    </div>
   </div>
-  <footer id="footerNote">UpgradeGuard — Detect &rarr; Rehearse &rarr; Repair &rarr; Verify</footer>
+
+  <section class="block" id="how-it-works">
+    <div class="block-inner">
+      <div class="section-head">
+        <h2>Four steps, most of them free</h2>
+        <p>Detection and rehearsal run instantly with no AI involved. Only the repair step calls on Bob — and only for dependencies that actually need it.</p>
+      </div>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">01</div>
+          <h3>Detect</h3>
+          <p>Reads your manifest and lockfile, checks the npm registry and audit data, and flags every outdated, deprecated, or vulnerable dependency.</p>
+        </div>
+        <div class="step">
+          <div class="step-num">02</div>
+          <h3>Rehearse</h3>
+          <p>Creates an isolated git worktree per dependency, installs the target version for real, and runs your actual test suite against it.</p>
+        </div>
+        <div class="step">
+          <div class="step-num">03</div>
+          <h3>Repair</h3>
+          <p>For anything that broke, Bob finds where it's used, explains the real breaking change, and writes a fix — inside its own branch only.</p>
+        </div>
+        <div class="step">
+          <div class="step-num">04</div>
+          <h3>Verify</h3>
+          <p>The fix is re-tested against your real suite before it's ever marked safe. Nothing is called "fixed" without a rerun proving it.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="technologies" style="padding-top: 0;">
+    <div class="block-inner">
+      <div class="section-head">
+        <h2>What actually runs where</h2>
+        <p>The expensive, deterministic work never touches an AI model. Bob is only called in for the one thing scripts can't do: understanding why something broke.</p>
+      </div>
+      <div class="tech-split">
+        <div class="tech-col">
+          <h3>Runs free, instantly</h3>
+          <p class="tech-sub">No Bobcoins, no network dependency beyond the public npm registry</p>
+          <ul class="tech-list">
+            <li><code>scan.js</code> Dependency + advisory scan via the npm registry and audit APIs</li>
+            <li><code>rehearse.js</code> Real install + real test run per dependency, in an isolated git worktree</li>
+            <li><code>merge-reports.js</code> Deterministic assembly of the final risk report</li>
+            <li><code>git worktree</code> Isolation so parallel rehearsals never collide on disk</li>
+          </ul>
+        </div>
+        <div class="tech-col dim">
+          <h3>Added by Bob, only when needed</h3>
+          <p class="tech-sub">Only for dependencies rehearse.js already flagged risky</p>
+          <ul class="tech-list">
+            <li><code>Usage Analyst</code> Explore subagent — finds real call sites in your code</li>
+            <li><code>Breaking-Change Analyst</code> Reads the actual changelog, cites the real cause</li>
+            <li><code>Fix Agent</code> Writes and applies the patch inside its own worktree branch</li>
+            <li><code>IBM Bob 2.0</code> Agent mode + parallel subagents, isolated per dependency</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="live-demo">
+    <div class="block-inner">
+      <div class="section-head">
+        <h2>Live demo</h2>
+        <p>These buttons run the real scripts against this project right now — not a simulation.</p>
+      </div>
+
+      <div class="toolbar">
+        <button class="btn" id="btnScan" onclick="runAction('/api/scan', 'Scanning dependencies...')">Scan Dependencies</button>
+        <button class="btn" id="btnRehearse" onclick="runAction('/api/rehearse', 'Rehearsing all outdated dependencies (real installs + real tests, can take a few minutes)...')">Rehearse All</button>
+        <button class="btn" id="btnMerge" onclick="runAction('/api/merge', 'Merging reports...')">Refresh Report</button>
+      </div>
+      <div class="status-line" id="statusLine"></div>
+      <div class="console-panel" id="consolePanel"></div>
+
+      <div class="mode-banner" id="modeBanner"></div>
+      <div class="summary" id="summary"></div>
+      <div class="grid" id="grid"></div>
+      <div class="empty" id="empty" style="display:none;">
+        No report found and no sample data available. Run <code>node scripts/scan.js</code> or
+        <code>node scripts/rehearse.js</code> first, then reload this page.
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    UpgradeGuard — Detect &middot; Rehearse &middot; Repair &middot; Verify
+    <div class="foot-note" id="footerNote"></div>
+  </footer>
 
 <script>
 /*
   DATA SOURCE PRIORITY (checked in this order):
-
-  1. reports/risk-report.json   -- richest. Produced by scripts/rehearse.js
-     (real install+test evidence) and enriched further by Bob (usage,
-     breakingChanges, fix). Loaded via fetch when this page is served by
-     scripts/serve-dashboard.js on localhost.
-
-  2. reports/dependency-health.json -- basic. Produced by scripts/scan.js
-     alone, before any rehearsal has run.
-
-  3. SAMPLE_DATA below -- a REAL captured run of this exact project's
-     rehearsal engine (not fabricated numbers), embedded so this file
-     still shows something meaningful when published standalone (e.g. as
-     a public link with no local server behind it, such as for a
-     hackathon submission's "Application URL" field). The mode banner
-     always says clearly which of the three is being shown.
-
-  Expected shape per dependency in risk-report.json:
-  {
-    "name": "express", "current": "4.18.2", "target": "5.2.1",
-    "riskTier": "HIGH" | "MEDIUM" | "LOW",
-    "usage": { "count": 23, "files": [{"file": "src/server.js", "tag": "HIGH"}] },
-    "breakingChanges": ["route matching behavior changed", "..."],
-    "rehearsal": { "testsBefore": 10, "testsTotal": 10, "testsAfterUpgrade": 0,
-                    "testsAfterFix": 10, "buildPass": true, "typecheckPass": true },
-    "fix": { "applied": true, "diffSummary": "- old\n+ new" },
-    "recommendation": "READY AFTER MIGRATION PATCH"
-  }
+  1. reports/risk-report.json   -- richest, from scripts/rehearse.js + Bob enrichment
+  2. reports/dependency-health.json -- basic, from scripts/scan.js alone
+  3. SAMPLE_DATA below -- a REAL captured run of this project (not fabricated),
+     shown when neither local report exists (e.g. a published standalone copy).
 */
 
 const SAMPLE_DATA = {
-  generatedAt: "2026-09-26T15:28:42.406Z",
+  generatedAt: "2026-09-26T18:42:28.576Z",
   dependencies: [
     {
       name: "express", current: "4.18.2", target: "5.2.1", riskTier: "HIGH",
-      usage: { count: 0, files: [] }, breakingChanges: [],
-      rehearsal: { testsBefore: 8, testsTotal: 10, testsAfterUpgrade: 0, testsAfterFix: null, buildPass: null, typecheckPass: null },
-      fix: { applied: false, diffSummary: null },
-      recommendation: "RISKY -- fewer tests ran after the upgrade than before (a test file may have failed to load). Expected 10 tests, only 0 ran."
+      usage: {
+        count: 3,
+        files: [
+          { file: "src/server.js:7", tag: "HIGH" },
+          { file: "src/routes/orders.js:5", tag: "HIGH" },
+          { file: "src/routes/users.js:5", tag: "HIGH" }
+        ]
+      },
+      breakingChanges: [
+        "[CRASH] Bare '*' wildcard in route paths is rejected at route-registration time by path-to-regexp v8",
+        "[HIGH] path-to-regexp v8 rejects regex-style characters in route strings",
+        "[HIGH] Express 5 error handlers must keep all four parameters (err, req, res, next)",
+        "[MEDIUM] Rejected promises from async handlers are now automatically forwarded to the error handler"
+      ],
+      rehearsal: { testsBefore: 10, testsTotal: 10, testsAfterUpgrade: 0, testsAfterFix: 10, buildPass: null, typecheckPass: null },
+      fix: { applied: true, diffSummary: "src/routes/orders.js\n- router.get('/legacy/*', (req, res) => {\n-   res.json({ wildcardPath: req.params[0] });\n+ router.get('/legacy/*splat', (req, res) => {\n+   const splat = req.params.splat;\n+   res.json({ wildcardPath: Array.isArray(splat) ? splat.join('/') : splat });" },
+      recommendation: "READY AFTER MIGRATION PATCH"
     },
-    {
-      name: "axios", current: "1.6.0", target: "1.20.0", riskTier: "MEDIUM",
-      usage: { count: 0, files: [] }, breakingChanges: [],
-      rehearsal: { testsBefore: 8, testsTotal: 10, testsAfterUpgrade: 8, testsAfterFix: null, buildPass: null, typecheckPass: null },
-      fix: { applied: false, diffSummary: null }, recommendation: "SAFE"
-    },
-    {
-      name: "dotenv", current: "16.3.1", target: "18.0.4", riskTier: "HIGH",
-      usage: { count: 0, files: [] }, breakingChanges: [],
-      rehearsal: { testsBefore: 8, testsTotal: 10, testsAfterUpgrade: 8, testsAfterFix: null, buildPass: null, typecheckPass: null },
-      fix: { applied: false, diffSummary: null }, recommendation: "SAFE"
-    },
-    {
-      name: "body-parser", current: "1.20.1", target: "2.3.0", riskTier: "HIGH",
-      usage: { count: 0, files: [] }, breakingChanges: [],
-      rehearsal: { testsBefore: 8, testsTotal: 10, testsAfterUpgrade: 8, testsAfterFix: null, buildPass: null, typecheckPass: null },
-      fix: { applied: false, diffSummary: null }, recommendation: "SAFE"
-    },
-    {
-      name: "jest", current: "29.7.0", target: "30.5.2", riskTier: "HIGH",
-      usage: { count: 0, files: [] }, breakingChanges: [],
-      rehearsal: { testsBefore: 8, testsTotal: 10, testsAfterUpgrade: 8, testsAfterFix: null, buildPass: null, typecheckPass: null },
-      fix: { applied: false, diffSummary: null }, recommendation: "SAFE"
-    },
-    {
-      name: "supertest", current: "6.3.3", target: "7.3.0", riskTier: "HIGH",
-      usage: { count: 0, files: [] }, breakingChanges: [],
-      rehearsal: { testsBefore: 8, testsTotal: 10, testsAfterUpgrade: 8, testsAfterFix: null, buildPass: null, typecheckPass: null },
-      fix: { applied: false, diffSummary: null }, recommendation: "SAFE"
-    }
+    { name: "axios", current: "1.6.0", target: "1.20.0", riskTier: "MEDIUM", usage: { count: 0, files: [] }, breakingChanges: [], rehearsal: { testsBefore: 10, testsTotal: 10, testsAfterUpgrade: 10, testsAfterFix: null }, fix: { applied: false, diffSummary: null }, recommendation: "SAFE" },
+    { name: "dotenv", current: "16.3.1", target: "18.0.4", riskTier: "HIGH", usage: { count: 0, files: [] }, breakingChanges: [], rehearsal: { testsBefore: 10, testsTotal: 10, testsAfterUpgrade: 10, testsAfterFix: null }, fix: { applied: false, diffSummary: null }, recommendation: "SAFE" },
+    { name: "body-parser", current: "1.20.1", target: "2.3.0", riskTier: "HIGH", usage: { count: 0, files: [] }, breakingChanges: [], rehearsal: { testsBefore: 10, testsTotal: 10, testsAfterUpgrade: 10, testsAfterFix: null }, fix: { applied: false, diffSummary: null }, recommendation: "SAFE" },
+    { name: "jest", current: "29.7.0", target: "30.5.2", riskTier: "HIGH", usage: { count: 0, files: [] }, breakingChanges: [], rehearsal: { testsBefore: 10, testsTotal: 10, testsAfterUpgrade: 10, testsAfterFix: null }, fix: { applied: false, diffSummary: null }, recommendation: "SAFE" },
+    { name: "supertest", current: "6.3.3", target: "7.3.0", riskTier: "HIGH", usage: { count: 0, files: [] }, breakingChanges: [], rehearsal: { testsBefore: 10, testsTotal: 10, testsAfterUpgrade: 10, testsAfterFix: null }, fix: { applied: false, diffSummary: null }, recommendation: "SAFE" }
   ]
 };
 
@@ -225,17 +437,27 @@ async function runAction(endpoint, statusText) {
   document.getElementById('statusLine').textContent = statusText;
   const panel = document.getElementById('consolePanel');
   panel.classList.add('open');
-  panel.textContent = '(running -- this calls the real script, not a simulation)';
+  panel.textContent = '';
 
   try {
     const res = await fetch(endpoint, { method: 'POST' });
-    const data = await res.json();
-    panel.textContent = data.output || '(no output)';
-    document.getElementById('statusLine').textContent = data.ok
+    if (res.body && res.body.getReader) {
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        panel.textContent += decoder.decode(value, { stream: true });
+        panel.scrollTop = panel.scrollHeight;
+      }
+    } else {
+      panel.textContent = await res.text();
+    }
+    document.getElementById('statusLine').textContent = /exit code 0/.test(panel.textContent)
       ? 'Done.'
-      : 'Finished with errors -- see console output above.';
+      : 'Finished -- check console output above.';
   } catch (e) {
-    panel.textContent = 'Request failed: ' + e.message;
+    panel.textContent += '\nRequest failed: ' + e.message;
     document.getElementById('statusLine').textContent = 'Could not reach the server.';
   }
 
@@ -285,14 +507,13 @@ function renderRich(data, source) {
   const deps = data.dependencies;
   const counts = {
     total: deps.length,
-    HIGH: deps.filter(d => d.riskTier === 'HIGH' && /^RISKY|DO NOT TOUCH/.test(d.recommendation || '')).length,
-    RISKY: deps.filter(d => /^RISKY/.test(d.recommendation || '')).length,
     SAFE: deps.filter(d => /^SAFE/.test(d.recommendation || '')).length,
+    RISKY: deps.filter(d => /^RISKY|^READY AFTER/.test(d.recommendation || '')).length,
   };
   document.getElementById('summary').innerHTML = [
     counts.total + ' dependencies rehearsed',
     counts.SAFE + ' safe',
-    counts.RISKY + ' risky',
+    counts.RISKY + ' needed attention',
   ].map(t => '<div class="pill">' + t + '</div>').join('');
 
   document.getElementById('grid').innerHTML = deps.map((dep, i) => {
@@ -301,10 +522,10 @@ function renderRich(data, source) {
     const usage = dep.usage || { count: 0, files: [] };
     const breaking = dep.breakingChanges || [];
     const isSafe = /^SAFE/.test(dep.recommendation || '');
-    const tier = isSafe ? 'LOW' : dep.riskTier;
+    const tier = isSafe ? 'LOW' : (dep.riskTier || 'MEDIUM');
 
     const usageList = usage.files.length
-      ? '<ul>' + usage.files.map(f => '<li>' + f.file + ' <span class="flag">' + f.tag + '</span></li>').join('') + '</ul>'
+      ? '<ul>' + usage.files.map(f => '<li>' + f.file + ' <span style="font-family:var(--font-mono);font-size:10.5px;color:var(--text-on-paper-dim);">' + f.tag + '</span></li>').join('') + '</ul>'
       : '<i>No usage analysis yet -- run the Usage Analyst prompt in Bob (Phase 2)</i>';
     const breakingList = breaking.length
       ? '<ul>' + breaking.map(b => '<li>' + b + '</li>').join('') + '</ul>'
@@ -315,7 +536,7 @@ function renderRich(data, source) {
 
     return '' +
       '<div class="card ' + tier + '">' +
-        '<div class="card-head"><h2>' + dep.name + '</h2>' +
+        '<div class="card-head"><h4>' + dep.name + '</h4>' +
           '<span class="badge ' + tier + '">' + (isSafe ? 'SAFE' : tier) + '</span></div>' +
         '<div class="version-row">' + dep.current + ' &rarr; ' + dep.target + '</div>' +
         '<div class="stat-row">' +
@@ -325,7 +546,7 @@ function renderRich(data, source) {
           '<div class="stat"><b>' + (r.testsAfterUpgrade ?? '-') + '/' + (r.testsTotal ?? '-') + '</b>after upgrade</div>' +
           (r.testsAfterFix != null ? '<div class="stat"><b>' + r.testsAfterFix + '/' + (r.testsTotal ?? '-') + '</b>after fix</div>' : '') +
         '</div>' +
-        '<span class="section-toggle" onclick="toggle(' + i + ')">View Evidence &darr;</span>' +
+        '<span class="section-toggle" onclick="toggle(' + i + ')">View evidence &darr;</span>' +
         '<div class="evidence-panel" id="ev' + i + '">' +
           '<b>Usage locations</b>' + usageList +
           '<b>Breaking changes</b>' + breakingList +
@@ -338,7 +559,7 @@ function renderRich(data, source) {
       '</div>';
   }).join('');
 
-  document.getElementById('footerNote').innerHTML = 'Source: ' + source;
+  document.getElementById('footerNote').textContent = 'Source: ' + source;
 }
 
 function toggle(i) {
@@ -359,15 +580,16 @@ function renderBasic(data) {
     if (dep.vulnerability) flags.push('VULN: ' + dep.vulnerability.severity);
     if (dep.lockfileDrift) flags.push('LOCKFILE DRIFT');
     const flagsHtml = flags.length
-      ? flags.map(f => '<span class="flag">' + f + '</span>').join('')
-      : '<span class="flag">clean</span>';
+      ? flags.map(f => '<span class="badge MEDIUM" style="margin-right:6px;">' + f + '</span>').join('')
+      : '<span class="badge LOW">clean</span>';
+    const tier = dep.bump === 'major' ? 'HIGH' : dep.bump === 'minor' ? 'MEDIUM' : 'LOW';
     const wantedNote = (dep.wanted && dep.wanted !== dep.latest) ? ' (wanted: ' + dep.wanted + ')' : '';
     return '' +
-      '<div class="card ' + dep.bump + '">' +
-        '<div class="card-head"><h2>' + dep.name + '</h2>' +
-          '<span class="badge ' + dep.bump + '">' + dep.bump + '</span></div>' +
+      '<div class="card ' + tier + '">' +
+        '<div class="card-head"><h4>' + dep.name + '</h4>' +
+          '<span class="badge ' + tier + '">' + dep.bump + '</span></div>' +
         '<div class="version-row">' + dep.current + ' &rarr; ' + dep.latest + wantedNote + '</div>' +
-        '<div class="flags">' + flagsHtml + '</div>' +
+        '<div style="margin-top:10px;">' + flagsHtml + '</div>' +
       '</div>';
   }).join('');
   document.getElementById('footerNote').textContent = 'Source: reports/dependency-health.json';
