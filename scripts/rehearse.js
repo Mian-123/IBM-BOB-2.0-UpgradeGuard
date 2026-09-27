@@ -242,28 +242,12 @@ function main() {
     console.log(`  -> ${result.recommendation}`);
   }
 
-  // Merge with any existing risk-report.json (e.g. usage/breaking-change/fix
-  // data Bob has already added) instead of overwriting it.
-  const riskReportPath = path.join(REPORTS_DIR, 'risk-report.json');
-  let existing = { dependencies: [] };
-  if (fs.existsSync(riskReportPath)) {
-    try {
-      existing = readJson(riskReportPath);
-    } catch {
-      existing = { dependencies: [] };
-    }
-  }
-  const byName = Object.fromEntries((existing.dependencies || []).map((d) => [d.name, d]));
-  for (const r of allResults) {
-    byName[r.name] = Object.assign({}, byName[r.name] || {}, r);
-  }
-
-  fs.writeFileSync(
-    riskReportPath,
-    JSON.stringify({ generatedAt: new Date().toISOString(), dependencies: Object.values(byName) }, null, 2)
-  );
-
-  console.log(`\nWrote reports/risk-report.json (${allResults.length} dependenc${allResults.length === 1 ? 'y' : 'ies'} rehearsed)`);
+  console.log(`\nWrote reports/rehearsal/*.json for ${allResults.length} dependenc${allResults.length === 1 ? 'y' : 'ies'}.`);
+  console.log('This script no longer writes risk-report.json directly -- run:');
+  console.log('  node scripts/merge-reports.js');
+  console.log('to (re)generate it. That script is now the ONLY thing that writes');
+  console.log('risk-report.json, so re-running this script can never erase Bob\'s');
+  console.log('usage/breaking-change/fix enrichment again.');
 }
 
 main();

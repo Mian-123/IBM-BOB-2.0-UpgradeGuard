@@ -85,6 +85,33 @@
   .empty code { background: rgba(255,255,255,0.15); padding: 2px 6px; border-radius: 4px; }
   footer { text-align: center; color: rgba(255,255,255,0.5); font-size: 12px; margin-top: 44px; }
   footer a { color: rgba(255,255,255,0.7); }
+
+  .toolbar {
+    display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;
+    margin: 18px auto 8px; max-width: 900px;
+  }
+  .btn {
+    background: #fff; color: var(--accent); border: none; padding: 10px 18px;
+    border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  }
+  .btn:hover { background: #eef1ff; }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .card-actions { margin-top: 10px; }
+  .btn-small {
+    font-size: 11px; font-weight: 600; color: var(--accent); background: #eef1ff;
+    border: none; padding: 5px 10px; border-radius: 7px; cursor: pointer; margin-top: 4px;
+  }
+  .btn-small:hover { background: #dfe4ff; }
+  .btn-small:disabled { opacity: 0.5; cursor: not-allowed; }
+  .console-panel {
+    max-width: 900px; margin: 10px auto 0; background: #0a0e2e; color: #b9f2c0;
+    font-family: "Courier New", monospace; font-size: 11.5px; line-height: 1.6;
+    border-radius: 10px; padding: 12px 16px; white-space: pre-wrap;
+    max-height: 220px; overflow-y: auto; display: none;
+  }
+  .console-panel.open { display: block; }
+  .status-line { text-align: center; color: #fff; font-size: 12px; opacity: 0.85; margin-top: 8px; min-height: 16px; }
 </style>
 </head>
 <body>
@@ -92,6 +119,13 @@
     <h1>UpgradeGuard</h1>
     <p>Rehearse dependency changes before they break your code.</p>
   </header>
+  <div class="toolbar">
+    <button class="btn" id="btnScan" onclick="runAction('/api/scan', 'Scanning dependencies...')">Scan Dependencies</button>
+    <button class="btn" id="btnRehearse" onclick="runAction('/api/rehearse', 'Rehearsing all outdated dependencies (this installs and tests each one, may take a minute)...')">Rehearse All</button>
+    <button class="btn" id="btnMerge" onclick="runAction('/api/merge', 'Merging reports...')">Refresh Report</button>
+  </div>
+  <div class="status-line" id="statusLine"></div>
+  <div class="console-panel" id="consolePanel"></div>
   <div class="mode-banner" id="modeBanner"></div>
   <div class="summary" id="summary"></div>
   <div class="grid" id="grid"></div>
@@ -175,6 +209,43 @@ const SAMPLE_DATA = {
     }
   ]
 };
+
+const ALL_BUTTON_IDS = ['btnScan', 'btnRehearse', 'btnMerge'];
+
+function setButtonsDisabled(disabled) {
+  ALL_BUTTON_IDS.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.disabled = disabled;
+  });
+  document.querySelectorAll('.btn-small').forEach(el => { el.disabled = disabled; });
+}
+
+async function runAction(endpoint, statusText) {
+  setButtonsDisabled(true);
+  document.getElementById('statusLine').textContent = statusText;
+  const panel = document.getElementById('consolePanel');
+  panel.classList.add('open');
+  panel.textContent = '(running -- this calls the real script, not a simulation)';
+
+  try {
+    const res = await fetch(endpoint, { method: 'POST' });
+    const data = await res.json();
+    panel.textContent = data.output || '(no output)';
+    document.getElementById('statusLine').textContent = data.ok
+      ? 'Done.'
+      : 'Finished with errors -- see console output above.';
+  } catch (e) {
+    panel.textContent = 'Request failed: ' + e.message;
+    document.getElementById('statusLine').textContent = 'Could not reach the server.';
+  }
+
+  setButtonsDisabled(false);
+  load();
+}
+
+async function rehearseOne(name) {
+  await runAction('/api/rehearse?name=' + encodeURIComponent(name), 'Rehearsing ' + name + '...');
+}
 
 async function tryFetch(path) {
   try {
@@ -261,6 +332,9 @@ function renderRich(data, source) {
           (diffHtml ? '<b>Fix applied</b>' + diffHtml : '') +
         '</div>' +
         '<div class="recommendation">' + (dep.recommendation || 'No recommendation yet') + '</div>' +
+        '<div class="card-actions">' +
+          '<button class="btn-small" onclick="rehearseOne(' + JSON.stringify(dep.name) + ')">Re-rehearse this dependency</button>' +
+        '</div>' +
       '</div>';
   }).join('');
 
